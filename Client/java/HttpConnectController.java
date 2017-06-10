@@ -143,6 +143,11 @@ public class HttpConnectController {
                     case VAL_SUCCESS:
                         try {
                             JSONObject myself = (JSONObject) message.obj;
+                            // initial user
+                            Contact.userId = id;
+                            Contact.userPassword = password;
+                            Contact.userName = myself.getString(KEY_USERNAME);
+                            Contact.userSignature = myself.getString(KEY_SIGNATURE);
                             newMessage.obj = message.obj;
                             handler.sendMessage(newMessage);
                         } catch (Exception e) {
@@ -166,6 +171,39 @@ public class HttpConnectController {
         postMessage(messageObj, HttpConnectController.TYPE_REGISTER, handler);
     }
     public void sendMessageTo(final Contact contact, final String content, final Handler handler) {
+        LinkedHashMap<String, String> sendMessage = new LinkedHashMap<>();
+        sendMessage.put(KEY_USERID, Contact.userId);
+        sendMessage.put(KEY_PASSWORD, Contact.userPassword);
+        sendMessage.put(KEY_DESTINATIONID, contact.id);
+        sendMessage.put(KEY_MSGTYPE, VAL_NORMAL);
+        sendMessage.put(KEY_MSGCONTENT, content);
+        Handler sendHandler = new Handler() {
+            @Override
+            public void handleMessage(Message message) {
+                Message newMessage = new Message();
+                newMessage.what = message.what;
+                newMessage.obj = message.obj;
+                switch (message.what) {
+                    case VAL_SUCCESS:
+                        try {
+                            JSONObject dialogObj = (JSONObject) message.obj;
+                            Dialog dialog = new Dialog(dialogObj.getString(KEY_MSGID),
+                                    Contact.userId, contact.id, content,
+                                    dialogObj.getString(KEY_MSGTIME), 0);
+                            dbHelper.insertDialog(dialog);
+                            handler.sendMessage(newMessage);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    case VAL_ERROR:
+                    case VAL_ILLEGAL:
+                        handler.sendMessage(newMessage);
+                        break;
+                }
+            }
+        };
+        postMessage(sendMessage, TYPE_POSTMSG, sendHandler);
     }
     public void shake(Contact contact, Handler handler) {
         LinkedHashMap<String, String> shakeMessage = new LinkedHashMap<>();
@@ -185,14 +223,107 @@ public class HttpConnectController {
     }
     public void verifyAddContact(final String contactId, final Handler handler) {
     }
+    public void refuseAddContact(String contactId, Handler handler) {
+    }
     // get will send msg to server and set msg read
     public void getDialogList(final Contact contact, final Handler handler) {
+        LinkedHashMap<String, String> getMessageRequest = new LinkedHashMap<>();
+        getMessageRequest.put(KEY_USERID, Contact.userId);
+        getMessageRequest.put(KEY_PASSWORD, Contact.userPassword);
+        getMessageRequest.put(KEY_CONTACTID, contact.id);
+        Handler dialogGetHandler = new Handler() {
+            @Override
+            public void handleMessage(Message message) {
+                Message clientMessage = new Message();
+                clientMessage.what = message.what;
+                switch (message.what) {
+                    case VAL_SUCCESS:
+                        try {
+                            JSONObject messageObj = (JSONObject) message.obj;
+                            JSONArray messageIdArray = (messageObj).getJSONArray(KEY_MSGID);
+                            for (int i = 0; i < messageIdArray.length(); ++i) {
+                                String messageId = messageIdArray.getString(i);
+                                JSONObject messageInfo = messageObj.getJSONObject(messageId);
+                                String receiverId =  messageInfo.getString(KEY_DESTINATIONID);
+                                String senderId = receiverId.equals(Contact.userId) ? contact.id : Contact.userId;
+                                Dialog newDialog = new Dialog(messageId,
+                                        senderId, receiverId,
+                                        messageInfo.getString(KEY_MSGDETAIL),
+                                        messageInfo.getString(KEY_MSGTIME), 1);
+                                dbHelper.insertDialog(newDialog);
+                            }
+                            dbHelper.setDialogRead(contact);
+                            ArrayList<Dialog> dialogList = dbHelper.getDialogList(contact);
+                            clientMessage.obj = dialogList;
+                            handler.sendMessage(clientMessage);
+                            HeartService.lastNewMessageNumber.remove(contact.id);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    case VAL_ERROR:
+                    case VAL_ILLEGAL:
+                        handler.sendMessage(clientMessage);
+                        break;
+                }
+            }
+        };
+        postMessage(getMessageRequest, TYPE_GETMSG, dialogGetHandler);
     }
     // update won't send message to server or set message read, just find from SQLite database
     public void updateDialogList(Contact contact, Handler handler) {
+        ArrayList<Dialog> dialogList = dbHelper.getDialogList(contact);
+        Message clientMessage = new Message();
+        clientMessage.what = VAL_SUCCESS;
+        clientMessage.obj = dialogList;
+        handler.sendMessage(clientMessage);
     }
 
     public void getContactList(final Handler handler) {
+        final ArrayList<Contact> contactList = dbHelper.getContactList();
+        if (contactList.size() == 0) {
+            LinkedHashMap<String, String> sendMsg = new LinkedHashMap<>();
+            sendMsg.put(KEY_USERID, Contact.userId);
+            sendMsg.put(KEY_PASSWORD, Contact.userPassword);
+            Handler contactResponseHandler = new Handler() {
+                @Override
+                public void handleMessage(Message message) {
+                    Message clientMessage = new Message();
+                    clientMessage.what = message.what;
+                    switch (message.what) {
+                        case VAL_SUCCESS:
+                            try {
+                                ArrayList<Contact> contactList = new ArrayList<>();
+                                JSONObject content = (JSONObject) message.obj;
+                                JSONArray contactIdArray = content.getJSONArray(KEY_USERID);
+                                for (int i = 0; i < contactIdArray.length(); ++i) {
+                                    String id = contactIdArray.getString(i);
+                                    JSONObject contactInfo = content.getJSONObject(id);
+                                    Contact contact = new Contact(id, contactInfo.getString(KEY_USERNAME), contactInfo.getString(KEY_SIGNATURE));
+                                    contactList.add(contact);
+                                    // insert into database
+                                    dbHelper.insertContact(contact);
+                                }
+                                clientMessage.obj = contactList;
+                                handler.sendMessage(clientMessage);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                            break;
+                        case VAL_ILLEGAL:
+                        case VAL_ERROR:
+                            handler.sendMessage(clientMessage);
+                            break;
+                    }
+                }
+            };
+            postMessage(sendMsg, TYPE_GETCONTACT, contactResponseHandler);
+        } else {
+            Message clientMessage = new Message();
+            clientMessage.what = VAL_SUCCESS;
+            clientMessage.obj = contactList;
+            handler.sendMessage(clientMessage);
+        }
     }
     public void heart(final Handler handler) {
     }
