@@ -74,6 +74,33 @@ public class HeartService extends Service {
         try {
             switch (message.what) {
                 case HttpConnectController.VAL_SUCCESS:
+                    JSONObject messageObj = (JSONObject) message.obj;
+                    Log.v("HeartMessage", messageObj.toString());
+
+                    Iterator<String> keyIt = messageObj.keys();
+                    JSONObject content;
+                    Intent intent;
+                    while (keyIt.hasNext()) {
+                        String keyStr = keyIt.next();
+                        Log.v("key", keyStr);
+                        switch (keyStr) {
+                            case HttpConnectController.KEY_NEWMSG:
+                                break;
+                            case HttpConnectController.KEY_NEWSHAKE:
+                                break;
+                            case HttpConnectController.KEY_NEWCONTACTREQUEST:
+                                break;
+                            case HttpConnectController.KEY_NEWCONTACTVERIFY:
+                                break;
+                            case HttpConnectController.KEY_NEWREAD:
+                                break;
+                            case HttpConnectController.KEY_NEWSETTING:
+                                break;
+                            default:
+                                Log.v("default key", keyStr);
+                                break;
+                        }
+                    }
                     break;
                 case HttpConnectController.VAL_ILLEGAL:
                     break;
