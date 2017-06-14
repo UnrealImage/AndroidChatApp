@@ -326,5 +326,82 @@ public class HttpConnectController {
         }
     }
     public void heart(final Handler handler) {
+        LinkedHashMap<String, String> heartMessage = new LinkedHashMap<>();
+        heartMessage.put(KEY_USERID, Contact.userId);
+        heartMessage.put(KEY_PASSWORD, Contact.userPassword);
+        Log.v("id", Contact.userId);
+        Log.v("password", Contact.userPassword);
+        final Handler dbHeartHandler = new Handler() {
+            @Override
+            public void handleMessage(Message message) {
+                Message newMessage = new Message();
+                newMessage.what = message.what;
+                newMessage.obj = message.obj;
+                switch (message.what) {
+                    case VAL_SUCCESS:
+                        // unknown
+                        try {
+                            JSONObject messageObj = (JSONObject) message.obj;
+                            Iterator<String> keyIt = messageObj.keys();
+                            while (keyIt.hasNext()) {
+                                String key = keyIt.next();
+                                switch (key) {
+                                    case KEY_NEWREAD:
+                                        JSONArray readMsgArray = messageObj.getJSONArray(key);
+                                        for (int i = 0; i < readMsgArray.length(); ++i) {
+                                            String readMessageId = readMsgArray.getString(i);
+                                            Dialog readDialog = dbHelper.queryDialog(readMessageId);
+                                            readDialog.isRead = 1;
+                                            dbHelper.updateDialog(readDialog);
+                                        }
+                                        break;
+                                    case KEY_NEWSETTING:
+                                        JSONObject settingObj = messageObj.getJSONObject(key);
+                                        Iterator<String> settingIt = settingObj.keys();
+                                        while (settingIt.hasNext()) {
+                                            String id = settingIt.next();
+                                            JSONObject info = settingObj.getJSONObject(id);
+                                            Contact contact = dbHelper.queryContact(id);
+                                            contact.name = info.getString(KEY_USERNAME);
+                                            contact.signature = info.getString(KEY_SIGNATURE);
+                                            dbHelper.updateContact(contact);
+                                        }
+                                        break;
+                                    case KEY_NEWCONTACTVERIFY:
+                                        JSONObject newContacts = messageObj.getJSONObject(key);
+                                        Iterator<String> newContactsIt = newContacts.keys();
+                                        while (newContactsIt.hasNext()) {
+                                            String id = newContactsIt.next();
+                                            JSONObject contactInfo = newContacts.getJSONObject(id);
+                                            Contact contact = new Contact(id, contactInfo.getString(KEY_USERNAME
+                                            ), contactInfo.getString(KEY_SIGNATURE));
+                                            dbHelper.insertContact(contact);
+                                        }
+                                        break;
+                                    case KEY_NEWCONTACTREQUEST:
+                                        JSONObject addContactReqObj = messageObj.getJSONObject(key);
+                                        Iterator<String> addContactIt = addContactReqObj.keys();
+                                        while (addContactIt.hasNext()) {
+                                            String id = addContactIt.next();
+                                            JSONObject contactInfo = addContactReqObj.getJSONObject(id);
+                                            Contact contact = new Contact(id, contactInfo.getString(KEY_USERNAME), contactInfo.getString(KEY_SIGNATURE));
+                                            dbHelper.insertAddContactRequest(contact);
+                                        }
+                                        break;
+                                }
+                            }
+                            handler.sendMessage(newMessage);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    case VAL_ILLEGAL:
+                    case VAL_ERROR:
+                        handler.sendMessage(newMessage);
+                        break;
+                }
+            }
+        };
+        postMessage(heartMessage, HttpConnectController.TYPE_HEART, dbHeartHandler);
     }
 }
