@@ -85,16 +85,69 @@ public class HeartService extends Service {
                         Log.v("key", keyStr);
                         switch (keyStr) {
                             case HttpConnectController.KEY_NEWMSG:
+                                content = messageObj.getJSONObject(keyStr);
+                                Log.v("content", content.toString());
+                                Iterator<String> messageIt = content.keys();
+                                while (messageIt.hasNext()) {
+                                    String senderId = messageIt.next();
+                                    String number = content.getString(senderId);
+
+                                    if (!lastNewMessageNumber.containsKey(senderId) || (lastNewMessageNumber.containsKey(senderId) && !lastNewMessageNumber.get(senderId).equals(number)) ) {
+                                        intent = new Intent(BROADCAST_NEWMSG);
+                                        intent.putExtra("id", senderId);
+                                        intent.putExtra("number", number);
+                                        sendBroadcast(intent);
+                                        lastNewMessageNumber.put(senderId, number);
+                                    }
+                                }
                                 break;
                             case HttpConnectController.KEY_NEWSHAKE:
+                                JSONArray senderArray = messageObj.getJSONArray(keyStr);
+                                for (int i = 0; i < senderArray.length(); ++i){
+                                    intent = new Intent(BROADCAST_SHAKE);
+                                    intent.putExtra("id", senderArray.getString(i));
+                                    sendBroadcast(intent);
+                                }
                                 break;
                             case HttpConnectController.KEY_NEWCONTACTREQUEST:
+                                content = messageObj.getJSONObject(keyStr);
+                                if (content.length() > 0) {
+                                    intent = new Intent(BROADCAST_NEWCONTACTREQUEST);
+                                    sendBroadcast(intent);
+                                }
                                 break;
                             case HttpConnectController.KEY_NEWCONTACTVERIFY:
+//                                content = messageObj.getJSONObject(keyStr);
+//                                Iterator<String> contactIt = content.keys();
+//                                while (contactIt.hasNext()) {
+//                                    String contactId = contactIt.next();
+//                                    JSONObject contactInfo = content.getJSONObject(contactId);
+//
+//                                    intent = new Intent(BROADCAST_NEWCONTACTVERIFY);
+//                                    intent.putExtra("id", contactId);
+//                                    intent.putExtra("name", contactInfo.getString(HttpConnectController.KEY_USERNAME));
+//                                    intent.putExtra("signature", contactInfo.getString(HttpConnectController.KEY_SIGNATURE));
+//                                    sendBroadcast(intent);
+//                                }
+                                content = messageObj.getJSONObject(keyStr);
+                                if (content.length() > 0) {
+                                    intent = new Intent(BROADCAST_NEWCONTACTVERIFY);
+                                    sendBroadcast(intent);
+                                }
                                 break;
                             case HttpConnectController.KEY_NEWREAD:
+                                JSONArray readMsgIdArr = messageObj.getJSONArray(keyStr);
+                                if (readMsgIdArr.length() > 0) {
+                                    intent = new Intent(BROADCAST_NEWREAD);
+                                    sendBroadcast(intent);
+                                }
                                 break;
                             case HttpConnectController.KEY_NEWSETTING:
+                                content = messageObj.getJSONObject(keyStr);
+                                if (content.length() > 0) {
+                                    intent = new Intent(BROADCAST_NEWSET);
+                                    sendBroadcast(intent);
+                                }
                                 break;
                             default:
                                 Log.v("default key", keyStr);
