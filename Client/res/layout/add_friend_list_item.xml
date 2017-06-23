@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:layout_margin="15dp"
+        android:id="@+id/add_friend_name"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:textColor="@color/black"/>
+
+    <TextView
+        android:layout_margin="15dp"
+        android:layout_width="0dp"
+        android:layout_weight="2"
+        android:layout_height="wrap_content"
+        android:textSize="15sp"
+        android:text="请求添加为朋友" />
+
+    <Button
+        android:id="@+id/permit"
+        android:background="@drawable/permit"
+        android:layout_marginRight="8dp"
+        android:layout_gravity="center_vertical"
+        android:layout_width="40dp"
+        android:layout_height="40dp" />
+
+    <Button
+        android:id="@+id/refuse"
+        android:background="@drawable/refuse"
+        android:layout_marginRight="15dp"
+        android:layout_gravity="center_vertical"
+        android:layout_width="40dp"
+        android:layout_height="40dp" />
+</LinearLayout>
