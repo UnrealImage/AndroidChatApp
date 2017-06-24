@@ -22,7 +22,7 @@ class LoginHandler(BaseHandler):
 				user_info = database.GetUserById(user_id)
 				self.set_status(200)
 				self.res_status['msg'] = 'login success'
-				self.res_status['user_name'] = user_info[0]['user_name']
+				self.res_status['user_name '] = user_info[0]['user_name']
 				self.res_status['config'] = user_info[0]['config']
 				self.write(json.dumps(self.res_status))
 				print self.res_status
