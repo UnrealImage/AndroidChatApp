@@ -15,4 +15,4 @@ class FooHandler(BaseHandler):
     def post(self):
     	self.write('test post')
     def put(self):
-    	self.write(' test put ')
+    	self.write('test put')
